@@ -4,19 +4,20 @@ import { useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, X } from "lucide-react";
-import { updateCartQuantityAction, removeFromCartAction } from "@/server/actions/store/cart";
+import { useCart } from "./CartProvider";
 import type { CartLine } from "@/server/services/storefront/cart.service";
 
 type Props = { line: CartLine };
 
 export function CartItemRow({ line }: Props) {
+  const { updateQuantity, removeItem } = useCart();
   const [isPending, startTransition] = useTransition();
 
   function handleQty(qty: number) {
-    startTransition(() => updateCartQuantityAction(line.variantId, qty));
+    startTransition(() => updateQuantity(line.variantId, qty));
   }
   function handleRemove() {
-    startTransition(() => removeFromCartAction(line.variantId));
+    startTransition(() => removeItem(line.variantId));
   }
 
   const opts = Object.entries(line.options);

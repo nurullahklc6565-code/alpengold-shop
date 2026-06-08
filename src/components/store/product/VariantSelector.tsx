@@ -33,6 +33,21 @@ export function VariantSelector({ variants, fallbackPricing, selectedId: control
     new Set(variants.flatMap((v) => Object.keys(v.options)))
   );
 
+  // Bir seçenek değeri için en uygun varyantı bulur. Önce mevcut diğer
+  // seçimlerle birebir eşleşen varyantı arar; eksik/seyrek varyant
+  // matrislerinde (tam ızgara olmayan) böyle bir kombinasyon yoksa, o
+  // değere sahip herhangi bir varyanta (tercihen stokta olana) düşer.
+  function variantForOptionValue(key: string, val: string) {
+    const exact = variants.find((v) =>
+      v.options[key] === val &&
+      optionKeys.every((k) => k === key || v.options[k] === selected.options[k])
+    );
+    if (exact) return exact;
+
+    const candidates = variants.filter((v) => v.options[key] === val);
+    return candidates.find((v) => v.inStock) ?? candidates[0] ?? null;
+  }
+
   return (
     <div className="space-y-4">
       {/* Seçenek grupları */}
@@ -43,9 +58,9 @@ export function VariantSelector({ variants, fallbackPricing, selectedId: control
             <p className="mb-2 text-sm font-medium text-gray-700">{key}</p>
             <div className="flex flex-wrap gap-2">
               {values.map((val) => {
-                const variantMatch = variants.find((v) => v.options[key] === val && Object.entries(selected.options).every(([k, v2]) => k === key || v.options[k] === v2));
+                const variantMatch = variantForOptionValue(key, val);
                 const isSelected = selected.options[key] === val;
-                const isOutOfStock = variantMatch ? !variantMatch.inStock : false;
+                const isOutOfStock = !variantMatch || !variantMatch.inStock;
                 return (
                   <button
                     key={val}

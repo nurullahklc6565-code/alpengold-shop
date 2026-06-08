@@ -41,6 +41,23 @@ export function ProductDetails({
     onVariantChange?.(variants.find((v) => v.id === id)?.imageUrl ?? null);
   }
 
+  // Bir seçenek değeri için en uygun varyantı bulur.
+  // Önce diğer seçili seçeneklerle birebir eşleşen varyantı arar (tam ızgara);
+  // böyle bir kombinasyon yoksa (eksik/seyrek varyant matrisi — örn. her renk
+  // farklı bir bedenle eşleşiyorsa), o değere sahip herhangi bir varyanta
+  // (tercihen stokta olana) düşer. Bu sayede seçenekler kombinasyon eksikliği
+  // yüzünden kalıcı olarak devre dışı kalmaz.
+  function variantForOptionValue(key: string, val: string) {
+    const exact = variants.find((v) =>
+      v.options[key] === val &&
+      optionKeys.every((k) => k === key || v.options[k] === selected.options[k])
+    );
+    if (exact) return exact;
+
+    const candidates = variants.filter((v) => v.options[key] === val);
+    return candidates.find((v) => v.inStock) ?? candidates[0] ?? null;
+  }
+
   if (!selected) {
     return <p className="text-[13px] text-[#a3a3a3]">Bu ürün için varyant bulunamadı.</p>;
   }
@@ -91,18 +108,14 @@ export function ProductDetails({
             </p>
             <div className="flex flex-wrap gap-2">
               {values.map((val) => {
-                const match = variants.find(
-                  (v) => v.options[key] === val &&
-                    Object.keys(selected.options).filter((k) => k !== key)
-                      .every((k) => v.options[k] === selected.options[k])
-                );
+                const match = variantForOptionValue(key, val);
                 const isSelected  = selected.options[key] === val;
-                const outOfStock  = match ? !match.inStock : true;
+                const outOfStock  = !match || !match.inStock;
                 return (
                   <button
                     key={val}
                     type="button"
-                    disabled={outOfStock && !match}
+                    disabled={!match || !match.inStock}
                     onClick={() => match && selectVariant(match.id)}
                     className={cn(
                       "relative min-w-[48px] border px-4 py-2 text-[13px] font-medium transition-all",
