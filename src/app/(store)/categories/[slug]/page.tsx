@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getActiveMarket } from "@/server/services/storefront/market-detect.service";
+import { getCustomerSession } from "@/lib/customer-session";
 import { storefrontProductService } from "@/server/services/storefront/storefront-product.service";
 import { marketService } from "@/server/services/market.service";
 import { ProductCard } from "@/components/store/product/ProductCard";
@@ -15,10 +16,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [category, market, defaultMarket] = await Promise.all([
+  const [category, market, defaultMarket, customerId] = await Promise.all([
     prisma.category.findUnique({ where: { slug, active: true } }),
     getActiveMarket(),
     marketService.findDefault(),
+    getCustomerSession(),
   ]);
 
   if (!category || !market) return notFound();
@@ -51,7 +53,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <div className="py-20 text-center text-sm text-gray-400">Bu kategoride ürün bulunamadı.</div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((p) => <ProductCard key={p.id} product={p} fallbackPricing={market.fallbackPricing} />)}
+          {products.map((p) => <ProductCard key={p.id} product={p} fallbackPricing={market.fallbackPricing} isLoggedIn={!!customerId} />)}
         </div>
       )}
     </div>

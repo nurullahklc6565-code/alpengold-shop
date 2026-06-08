@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, User } from "lucide-react";
 import { MarketSwitcher } from "./MarketSwitcher";
 import { HeaderActions } from "./HeaderActions";
+import { MobileMenu } from "./MobileMenu";
 import { getSettings } from "@/lib/utils/settings";
 import { prisma } from "@/lib/prisma";
 
@@ -39,9 +40,10 @@ export async function StoreHeader({ currentMarketId }: Props) {
 
       {/* Ana navigasyon */}
       <div className="border-b border-[#e5e5e5]">
-        <div className="mx-auto grid h-[76px] max-w-[1400px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-6">
-          {/* Sol: arama */}
-          <div className="flex items-center justify-start">
+        <div className="mx-auto grid h-[68px] sm:h-[76px] max-w-[1400px] grid-cols-[auto_1fr_auto] items-center gap-2 px-4 sm:gap-4 sm:px-6">
+          {/* Sol: mobil menü + arama */}
+          <div className="flex items-center justify-start gap-0.5 sm:gap-1">
+            <MobileMenu categories={categories} storeName={storeName} />
             <Link
               href="/search"
               className="flex h-9 w-9 items-center justify-center text-[#525252] transition-colors hover:text-[#0a0a0a]"
@@ -52,22 +54,22 @@ export async function StoreHeader({ currentMarketId }: Props) {
           </div>
 
           {/* Orta: logo */}
-          <Link href="/" className="shrink-0 justify-self-center">
+          <Link href="/" className="min-w-0 shrink justify-self-center overflow-hidden">
             {s.store_logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.store_logo_url} alt={storeName} className="h-8 w-auto object-contain" />
+              <img src={s.store_logo_url} alt={storeName} className="h-7 sm:h-8 w-auto object-contain" />
             ) : (
-              <span className="font-serif text-[22px] font-semibold tracking-[0.22em] text-[#0a0a0a]">
+              <span className="block truncate font-serif text-[16px] sm:text-[22px] font-semibold tracking-[0.10em] sm:tracking-[0.22em] text-[#0a0a0a]">
                 {storeName}
               </span>
             )}
           </Link>
 
           {/* Sağ: hesap + favoriler + sepet */}
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-0.5 sm:gap-1">
             <Link
               href="/account"
-              className="flex h-9 w-9 items-center justify-center text-[#525252] transition-colors hover:text-[#0a0a0a]"
+              className="hidden sm:flex h-9 w-9 items-center justify-center text-[#525252] transition-colors hover:text-[#0a0a0a]"
               aria-label="Hesabım"
             >
               <User className="h-[18px] w-[18px]" strokeWidth={1.5} />

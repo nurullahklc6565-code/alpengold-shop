@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getActiveMarket } from "@/server/services/storefront/market-detect.service";
+import { getCustomerSession } from "@/lib/customer-session";
 import { storefrontProductService } from "@/server/services/storefront/storefront-product.service";
 import { marketService } from "@/server/services/market.service";
 import { ProductCard } from "@/components/store/product/ProductCard";
@@ -19,9 +20,10 @@ export default async function SearchPage({
   const categoryFilter = sp.category;
   const sort = sp.sort ?? "relevance";
 
-  const [market, defaultMarket, categories] = await Promise.all([
+  const [market, defaultMarket, customerId, categories] = await Promise.all([
     getActiveMarket(),
     marketService.findDefault(),
+    getCustomerSession(),
     prisma.category.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
@@ -126,7 +128,7 @@ export default async function SearchPage({
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
-              <ProductCard key={p.id} product={p} fallbackPricing={market.fallbackPricing} />
+              <ProductCard key={p.id} product={p} fallbackPricing={market.fallbackPricing} isLoggedIn={!!customerId} />
             ))}
           </div>
         )

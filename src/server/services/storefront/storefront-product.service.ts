@@ -3,6 +3,9 @@ import { resolveVariantPrice } from "@/lib/utils/pricing";
 import { unstable_cache } from "next/cache";
 import type { FallbackPricing } from "@prisma/client";
 
+/** "Yeni" rozeti gösterilecek ürünlerin oluşturulma süresi eşiği (gün) */
+const NEW_PRODUCT_THRESHOLD_DAYS = 21;
+
 type MarketContext = {
   marketId: string;
   fallbackPricing: FallbackPricing;
@@ -53,6 +56,7 @@ export const storefrontProductService = {
             where: { active: true },
             take: 1, // listede sadece ilk varyant fiyatını göster
             include: {
+              inventory: true,
               prices: {
                 where: { marketId: { in: priceMarketIds } },
                 include: { currency: true },
@@ -92,6 +96,14 @@ export const storefrontProductService = {
 
         if (marketCtx.fallbackPricing === "BLOCK" && !resolved) return null;
 
+        const inventory = variant?.inventory;
+        const available = inventory ? inventory.quantity - inventory.reserved : null;
+        const isLowStock = !!inventory?.trackQuantity &&
+          inventory.lowStockThreshold !== null && available !== null &&
+          available > 0 && available <= inventory.lowStockThreshold;
+
+        const isNew = (Date.now() - p.createdAt.getTime()) / 86_400_000 <= NEW_PRODUCT_THRESHOLD_DAYS;
+
         return {
           id: p.id,
           name: p.name,
@@ -101,6 +113,9 @@ export const storefrontProductService = {
           secondImageUrl: p.images[1]?.url ?? null,
           category: p.category,
           resolvedPrice: resolved,
+          isNew,
+          isLowStock,
+          lowStockQuantity: isLowStock ? available : null,
         };
       })
       .filter(Boolean) as Array<{
@@ -108,6 +123,9 @@ export const storefrontProductService = {
       imageAlt: string; secondImageUrl: string | null;
       category: { name: string; slug: string } | null;
       resolvedPrice: ReturnType<typeof resolveVariantPrice>;
+      isNew: boolean;
+      isLowStock: boolean;
+      lowStockQuantity: number | null;
     }>;
 
     return { products, total, page, perPage, totalPages: Math.ceil(total / perPage) };

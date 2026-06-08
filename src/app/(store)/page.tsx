@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { getActiveMarket } from "@/server/services/storefront/market-detect.service";
+import { getCustomerSession } from "@/lib/customer-session";
 import { storefrontProductService } from "@/server/services/storefront/storefront-product.service";
 import { marketService } from "@/server/services/market.service";
 import { getSettings } from "@/lib/utils/settings";
@@ -16,9 +18,10 @@ const SETTING_KEYS = [
 ];
 
 export default async function StorefrontHomePage() {
-  const [market, defaultMarket, s, categories, collections] = await Promise.all([
+  const [market, defaultMarket, customerId, s, categories, collections] = await Promise.all([
     getActiveMarket(),
     marketService.findDefault(),
+    getCustomerSession(),
     getSettings(SETTING_KEYS),
     prisma.category.findMany({
       where: { active: true },
@@ -68,45 +71,77 @@ export default async function StorefrontHomePage() {
     <div>
 
       {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
-      <section className="relative h-[92vh] min-h-[600px] max-h-[900px] overflow-hidden bg-[#0a0a0a]">
-        {s.hero_image_url && (
+      <section className="relative h-[88vh] min-h-[620px] max-h-[880px] overflow-hidden bg-[#0a0a0a]">
+        {s.hero_image_url ? (
           <>
             <Image
               src={s.hero_image_url}
               alt={heroTitle}
               fill
-              className="object-cover opacity-60"
+              className="object-cover opacity-65"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/70" />
           </>
+        ) : (
+          <div className="store-hero-fallback absolute inset-0" />
         )}
 
-        <div className="relative flex h-full flex-col justify-end pb-20 px-6 max-w-[1400px] mx-auto">
-          <p className="store-eyebrow text-white/60 mb-4">
-            {market.name} · {market.defaultCurrency.code}
+        {/* Koleksiyon vurgusu — sağ üstte zarif kart */}
+        {collections[0] && (
+          <Link
+            href={`/collections/${collections[0].slug}`}
+            className="absolute right-6 top-8 z-10 hidden items-center gap-3 border border-white/15 bg-white/[0.06] px-4 py-3 backdrop-blur-md transition-colors hover:bg-white/[0.12] sm:flex max-w-[270px]"
+          >
+            {collections[0].imageUrl && (
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden">
+                <Image src={collections[0].imageUrl} alt={collections[0].name} fill className="object-cover" sizes="48px" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="store-eyebrow text-white/45">Öne Çıkan Koleksiyon</p>
+              <p className="truncate text-[13px] font-medium text-white">{collections[0].name}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={1.5} />
+          </Link>
+        )}
+
+        <div className="relative flex h-full flex-col justify-end pb-16 px-6 max-w-[1400px] mx-auto sm:pb-20">
+          <p className="store-eyebrow text-white/55 mb-5">
+            {s.store_name || "Mağaza"} · {market.name} · {market.defaultCurrency.code}
           </p>
-          <h1 className="text-white font-bold leading-[1.05] tracking-tight whitespace-pre-line"
-              style={{ fontSize: "clamp(2.5rem, 6vw, 5.5rem)" }}>
+          <h1 className="font-serif text-white font-semibold leading-[1.02] tracking-tight whitespace-pre-line"
+              style={{ fontSize: "clamp(2.75rem, 7.5vw, 6.5rem)" }}>
             {heroTitle}
           </h1>
-          <p className="mt-4 max-w-md text-[15px] text-white/70 leading-relaxed">
+          <p className="mt-5 max-w-md text-[15px] text-white/65 leading-relaxed">
             {heroDesc}
           </p>
-          <div className="mt-8 flex gap-3">
+          <div className="mt-9 flex flex-wrap gap-3">
             <Link
               href={heroCtaUrl}
-              className="inline-flex items-center gap-2 rounded-none bg-white px-8 py-3.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#0a0a0a] hover:bg-[#f2f2f2] transition-colors"
+              className="inline-flex items-center gap-2 rounded-none bg-white px-8 py-3.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#0a0a0a] transition-colors hover:bg-[#f2f2f2]"
             >
               {heroCtaText}
             </Link>
             <Link
               href="/collections"
-              className="inline-flex items-center gap-2 rounded-none border border-white/40 px-8 py-3.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-white hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 rounded-none border border-white/40 px-8 py-3.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-white/10"
             >
               Koleksiyonlar
             </Link>
           </div>
+          {s.about_short && (
+            <p className="mt-7 max-w-lg border-l border-white/20 pl-4 text-[12.5px] leading-relaxed text-white/40">
+              {s.about_short}
+            </p>
+          )}
+        </div>
+
+        {/* Kaydırma ipucu */}
+        <div className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-white/35">Aşağı kaydır</span>
+          <span className="h-9 w-px bg-gradient-to-b from-white/35 to-transparent" />
         </div>
       </section>
 
@@ -253,7 +288,7 @@ export default async function StorefrontHomePage() {
         ) : (
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
-              <ProductCard key={p.id} product={p} fallbackPricing={market.fallbackPricing} />
+              <ProductCard key={p.id} product={p} fallbackPricing={market.fallbackPricing} isLoggedIn={!!customerId} />
             ))}
           </div>
         )}
