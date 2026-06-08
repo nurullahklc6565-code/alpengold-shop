@@ -274,7 +274,14 @@ export const paymentService = {
     const existing = await prisma.paymentProviderConfig.findFirst({
       where: { providerId, marketId },
     });
-    const data = { configData: configData as import("@prisma/client").Prisma.InputJsonValue };
+    // Mevcut config ile yeni değerleri birleştir (merge) — boş bırakılan alanlar
+    // eskisini korur, böylece sadece secretKey değiştirirken publishableKey kaybolmaz.
+    const existingData = (existing?.configData as Record<string, string>) ?? {};
+    const merged: Record<string, string> = { ...existingData };
+    for (const [k, v] of Object.entries(configData)) {
+      if (v.trim()) merged[k] = v.trim();
+    }
+    const data = { configData: merged as import("@prisma/client").Prisma.InputJsonValue };
     if (existing) {
       return prisma.paymentProviderConfig.update({ where: { id: existing.id }, data });
     }

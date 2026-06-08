@@ -66,25 +66,42 @@ export function PaymentProviderCard({ provider, allMarkets }: Props) {
             Env var tanımlıysa buradaki değer kullanılmaz.
           </div>
 
-          <form action={configAction} className="space-y-2">
+          {/* autocomplete="off" + uniq id: Chrome password manager'ın bu formu
+              kendi credential alanı sanıp autofill yapmasını / değerleri silmesini önler */}
+          <form action={configAction} className="space-y-2" autoComplete="off">
             <input type="hidden" name="providerId" value={provider.id} />
-            {fields.map((field) => (
-              <div key={field.key}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {field.label}
-                  {field.envOverride && (
-                    <span className="ml-1 text-gray-400">({field.envOverride})</span>
-                  )}
-                </label>
-                <input
-                  name={`config_${field.key}`}
-                  type={field.type === "password" ? "password" : "text"}
-                  defaultValue={globalConfig[field.key] ?? ""}
-                  placeholder={field.envOverride ? `env: ${field.envOverride}` : field.default ?? ""}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
-                />
-              </div>
-            ))}
+            {fields.map((field) => {
+              const isPassword = field.type === "password";
+              const hasExisting = !!globalConfig[field.key];
+              return (
+                <div key={field.key}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {field.label}
+                    {field.envOverride && (
+                      <span className="ml-1 text-gray-400">({field.envOverride})</span>
+                    )}
+                    {isPassword && hasExisting && (
+                      <span className="ml-1.5 text-[10px] text-green-600 font-normal">✓ kayıtlı</span>
+                    )}
+                  </label>
+                  <input
+                    name={`config_${field.key}`}
+                    type={isPassword ? "text" : "text"}
+                    defaultValue={globalConfig[field.key] ?? ""}
+                    placeholder={
+                      isPassword && hasExisting
+                        ? "Değiştirmek için yeni değer girin"
+                        : (field.envOverride ? `env: ${field.envOverride}` : field.default ?? "")
+                    }
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    spellCheck={false}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
+                  />
+                </div>
+              );
+            })}
 
             {configState.error && <p className="text-xs text-red-600">{configState.error}</p>}
             {configState.success && <p className="text-xs text-green-600">Kaydedildi.</p>}
