@@ -63,10 +63,18 @@ export default async function PaymentsPage() {
               provider={{
                 ...provider,
                 settingsSchema: provider.settingsSchema as { fields: Array<{ key: string; label: string; type: string; envOverride?: string; default?: string }> },
-                configs: provider.configs.map((c) => ({
-                  marketId: c.marketId,
-                  configData: c.configData as Record<string, string>,
-                })),
+                configs: provider.configs.map((c) => {
+                  const schema = provider.settingsSchema as { fields: Array<{ key: string; type: string }> };
+                  const raw = c.configData as Record<string, string>;
+                  // Güvenlik: password tipindeki alanların tam değerini frontend'e gönderme.
+                  // Sentinel "__CONFIGURED__" → alan dolu ama değer gizli.
+                  const masked: Record<string, string> = {};
+                  for (const [k, v] of Object.entries(raw)) {
+                    const isSecret = schema.fields.find((f) => f.key === k)?.type === "password";
+                    masked[k] = isSecret && v ? "__CONFIGURED__" : v;
+                  }
+                  return { marketId: c.marketId, configData: masked };
+                }),
                 marketPaymentProviders: provider.marketPaymentProviders.map((mp) => ({
                   marketId: mp.marketId,
                   active: mp.active,

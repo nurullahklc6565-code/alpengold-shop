@@ -54,7 +54,16 @@ async function buildAdapter(providerCode: string, marketId?: string | null): Pro
   const config = Object.fromEntries(fields.map((f) => [f.key, resolve(f)]));
 
   if (providerCode === "stripe") {
-    if (!config.secretKey) throw new Error("Stripe Secret Key yapılandırılmamış. .env.local dosyasında STRIPE_SECRET_KEY ayarlayın.");
+    if (!config.secretKey) {
+      throw new Error("Stripe Secret Key yapılandırılmamış. Admin panelden veya .env dosyasından STRIPE_SECRET_KEY ayarlayın.");
+    }
+    const validPrefix = config.secretKey.startsWith("sk_test_") || config.secretKey.startsWith("sk_live_") || config.secretKey.startsWith("rk_");
+    if (!validPrefix) {
+      throw new Error(
+        `Stripe Secret Key formatı geçersiz. "sk_test_..." veya "sk_live_..." ile başlamalıdır. ` +
+        `Admin panelden (Ödeme Sağlayıcıları > Stripe > Secret Key) güncelleyin.`
+      );
+    }
     const { StripeAdapter } = await import("@/server/payments/adapters/stripe.adapter");
     return new StripeAdapter({ secretKey: config.secretKey });
   }

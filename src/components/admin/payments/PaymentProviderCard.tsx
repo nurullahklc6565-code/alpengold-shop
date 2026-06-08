@@ -66,13 +66,12 @@ export function PaymentProviderCard({ provider, allMarkets }: Props) {
             Env var tanımlıysa buradaki değer kullanılmaz.
           </div>
 
-          {/* autocomplete="off" + uniq id: Chrome password manager'ın bu formu
-              kendi credential alanı sanıp autofill yapmasını / değerleri silmesini önler */}
           <form action={configAction} className="space-y-2" autoComplete="off">
             <input type="hidden" name="providerId" value={provider.id} />
             {fields.map((field) => {
-              const isPassword = field.type === "password";
-              const hasExisting = !!globalConfig[field.key];
+              const isSecret = field.type === "password";
+              // Sunucu "__CONFIGURED__" sentinel'i ile maskelenmiş değerleri işaretle
+              const isConfigured = isSecret && globalConfig[field.key] === "__CONFIGURED__";
               return (
                 <div key={field.key}>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -80,25 +79,35 @@ export function PaymentProviderCard({ provider, allMarkets }: Props) {
                     {field.envOverride && (
                       <span className="ml-1 text-gray-400">({field.envOverride})</span>
                     )}
-                    {isPassword && hasExisting && (
+                    {isConfigured && (
                       <span className="ml-1.5 text-[10px] text-green-600 font-normal">✓ kayıtlı</span>
                     )}
                   </label>
-                  <input
-                    name={`config_${field.key}`}
-                    type={isPassword ? "text" : "text"}
-                    defaultValue={globalConfig[field.key] ?? ""}
-                    placeholder={
-                      isPassword && hasExisting
-                        ? "Değiştirmek için yeni değer girin"
-                        : (field.envOverride ? `env: ${field.envOverride}` : field.default ?? "")
-                    }
-                    autoComplete="off"
-                    data-1p-ignore
-                    data-lpignore="true"
-                    spellCheck={false}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
-                  />
+                  {isSecret ? (
+                    // Gizli alanlar: tam değeri gösterme, boş input — yalnızca yeni değer girilince kaydet
+                    <input
+                      name={`config_${field.key}`}
+                      type="password"
+                      defaultValue=""
+                      placeholder={isConfigured ? "Değiştirmek için yeni değer girin" : (field.envOverride ? `env: ${field.envOverride}` : "Değer girin")}
+                      autoComplete="new-password"
+                      data-1p-ignore
+                      data-lpignore="true"
+                      spellCheck={false}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
+                    />
+                  ) : (
+                    // Publish edilebilir alanlar (publishableKey vb.) düz text olarak göster
+                    <input
+                      name={`config_${field.key}`}
+                      type="text"
+                      defaultValue={globalConfig[field.key] ?? ""}
+                      placeholder={field.envOverride ? `env: ${field.envOverride}` : field.default ?? ""}
+                      autoComplete="off"
+                      spellCheck={false}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
+                    />
+                  )}
                 </div>
               );
             })}

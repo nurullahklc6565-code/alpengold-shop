@@ -33,14 +33,25 @@ export async function saveProviderConfigAction(
   const marketId = (formData.get("marketId") as string) || null;
 
   // Form alanlarını config objesine dönüştür (key formatı: config_FIELDKEY)
+  // "__CONFIGURED__" sentinel: sunucunun gönderdiği maskelenmiş değer — değiştirilmemiş demek, atla
   const configData: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
-    if (key.startsWith("config_") && String(value).trim()) {
-      configData[key.replace("config_", "")] = String(value);
+    const v = String(value).trim();
+    if (key.startsWith("config_") && v && v !== "__CONFIGURED__") {
+      configData[key.replace("config_", "")] = v;
     }
   }
 
   if (!providerId) return { error: "Provider ID eksik" };
+
+  // Stripe secret key format doğrulaması
+  if (configData.secretKey) {
+    const sk = configData.secretKey;
+    const validFormat = sk.startsWith("sk_test_") || sk.startsWith("sk_live_") || sk.startsWith("rk_");
+    if (!validFormat) {
+      return { error: `Secret Key formatı geçersiz: "sk_test_..." veya "sk_live_..." ile başlamalıdır. Girilen değer "${sk.slice(0, 7)}..." ile başlıyor.` };
+    }
+  }
 
   try {
     await paymentService.saveProviderConfig(providerId, marketId, configData);
